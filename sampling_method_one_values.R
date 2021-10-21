@@ -41,9 +41,9 @@ lines_test <- sampled_lines_mv1 %>%
   slice_sample(.,n=3000)
 
 
-
-mapview(centroids_inside_the_polygs)+
-  mapview(lines_test,color = "red")
+# 
+# mapview(centroids_inside_the_polygs)+
+#   mapview(lines_test,color = "red")
 
 
 
@@ -73,7 +73,7 @@ shamel2 <- lapply(1:dim(centroids_inside_the_polygs)[1], function(i){
   }
     })
   
-
+## run from here
 shamel2_unlist1 <- do.call("rbind",shamel2) 
 
 shamel2_unlist2 <- do.call("rbind",shamel2) 
