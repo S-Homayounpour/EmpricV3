@@ -64,7 +64,8 @@ lines_test <- sampled_lines_mv1 %>%
 
 
 
-
+## This function finds the list of all lines in the sampled lines df that have been fully burnt in the
+## corresponding fire
 shamel2 <- lapply(1:dim(centroids_inside_the_polygs)[1], function(i){
   contained <- st_contains(st_geometry(centroids_inside_the_polygs)[[i]],st_geometry(sampled_lines_mv1))
   cond1<- length(unlist(contained)) == 0L
@@ -73,12 +74,72 @@ shamel2 <- lapply(1:dim(centroids_inside_the_polygs)[1], function(i){
   }
     })
   
-## run from here
+## 
 shamel2_unlist1 <- do.call("rbind",shamel2) 
 
-shamel2_unlist2 <- do.call("rbind",shamel2) 
+## this df includes all burnt fires
+shamel2_unlist2 <- as_tibble(shamel2_unlist1) %>% 
+  group_by(FireId) %>% 
+  unnest("khatha") %>% 
+  ungroup() %>% 
+  mutate(line_type = "burnt") %>% 
+  unnest('FireId')
 
-shamel2 %>% 
-  unnest()
 
 
+
+# adding burnt and unburnt to line data aka sampled lines df
+smpdlines_infoadded <- sampled_lines_mv1 %>% 
+  left_join(shamel2_unlist2, by = c("FireId" = "FireId", "lineid" = "khatha" )) %>% 
+  mutate(line_type = replace_na(line_type,"Partially_burnt"))
+
+
+## next step is adding mean of slope across the line
+dem_dt <- raster('data/slope_nsw')
+
+
+
+
+
+plot(dem_dt)
+
+## sampling values from raster using Michael code
+
+cellres <- min(raster::res(dem_dt))
+ 
+# e <- extent(144.8,146.6,-35.7,-33.04)
+# 
+# 
+# cropped_ras<- crop(dem_dt,e)
+# sapply(cropped_ras,raster::res)
+
+spacing <- min(cellres)
+
+smpdlines_infoadded <- st_as_sf(smpdlines_infoadded)
+# Generate sample points. This will give an sfc object
+# containing MULTIPOINTS, one for each scan line
+mpts <- st_segmentize(smpdlines_infoadded, density = 1 / spacing)
+
+# Create a data frame of sample points
+dat <- lapply(1:nrow(smpdlines_infoadded),
+              function(i) {
+                xy <- st_coordinates(mpts[[i]])
+                
+                data.frame(FireId = smpdlines_infoadded$FireId[i],
+                           lineid = smpdlines_infoadded$lineid[i],
+                           sampleid = 1:nrow(xy),
+                           x = xy[, 1],
+                           y = xy[, 2])
+              })
+
+dat <- do.call(rbind, dat)
+
+
+# Extract values from rasters
+vals <- lapply(dem_dt, function(r) {
+  raster::extract(r, as.matrix(dat[, c("x", "y")]))
+})
+names(vals) <- names(dem_dt)
+
+# Return result
+data.frame(dat, vals)

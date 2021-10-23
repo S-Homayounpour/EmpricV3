@@ -1,0 +1,50 @@
+
+## next step is adding mean of slope across the line
+dem_dt <- raster('data/slope_nsw')
+
+
+
+
+
+plot(dem_dt)
+
+## sampling values from raster using Michael code
+
+cellres <- min(raster::res(dem_dt))
+ 
+# e <- extent(144.8,146.6,-35.7,-33.04)
+# 
+# 
+# cropped_ras<- crop(dem_dt,e)
+# sapply(cropped_ras,raster::res)
+
+spacing <- min(cellres)
+
+smpdlines_infoadded <- st_as_sf(smpdlines_infoadded)
+# Generate sample points. This will give an sfc object
+# containing MULTIPOINTS, one for each scan line
+mpts <- st_segmentize(smpdlines_infoadded, dfMaxLength = 1 / spacing)
+
+# Create a data frame of sample points
+dat <- lapply(1:nrow(smpdlines_infoadded),
+              function(i) {
+                xy <- st_coordinates(mpts[[i]])
+                
+                data.frame(FireId = smpdlines_infoadded$FireId[i],
+                           lineid = smpdlines_infoadded$lineid[i],
+                           sampleid = 1:nrow(xy),
+                           x = xy[, 1],
+                           y = xy[, 2])
+              })
+
+dat <- do.call(rbind, dat)
+
+
+# Extract values from rasters
+vals <- lapply(dem_dt, function(r) {
+  raster::extract(r, as.matrix(dat[, c("x", "y")]))
+})
+names(vals) <- names(dem_dt)
+
+# Return result
+data.frame(dat, vals)
