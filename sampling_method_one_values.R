@@ -38,7 +38,8 @@ sampled_lines_mv1 <- sampled_lines_mv1 %>%
   mutate(lineid = row_number())
 
 lines_test <- sampled_lines_mv1 %>%
-  slice_sample(.,n=3000)
+  slice_sample(.,n=3000) %>% 
+  st_transform(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs"))
 
 
 # 
@@ -101,7 +102,7 @@ dem_dt <- raster('data/slope_nsw')
 
 
 
-plot(dem_dt)
+#plot(dem_dt)
 
 ## sampling values from raster using Michael code
 
@@ -115,18 +116,22 @@ cellres <- min(raster::res(dem_dt))
 
 spacing <- min(cellres)
 
-smpdlines_infoadded <- st_as_sf(smpdlines_infoadded)
+#smpdlines_infoadded <- st_as_sf(smpdlines_infoadded)
 # Generate sample points. This will give an sfc object
 # containing MULTIPOINTS, one for each scan line
-mpts <- st_segmentize(smpdlines_infoadded, density = 1 / spacing)
+# smpdlines_infoadded
+#mpts <- st_segmentize(lines_test, dfMaxLength = 1 / spacing)
+
+mpts_linesamp <-  sf::st_line_sample(lines_test, n = 30)
+
 
 # Create a data frame of sample points
-dat <- lapply(1:nrow(smpdlines_infoadded),
+dat <- lapply(1:nrow(lines_test),
               function(i) {
                 xy <- st_coordinates(mpts[[i]])
                 
-                data.frame(FireId = smpdlines_infoadded$FireId[i],
-                           lineid = smpdlines_infoadded$lineid[i],
+                data.frame(FireId = lines_test$FireId[i],
+                           lineid = lines_test$lineid[i],
                            sampleid = 1:nrow(xy),
                            x = xy[, 1],
                            y = xy[, 2])
