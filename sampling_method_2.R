@@ -44,7 +44,7 @@ donuts <- st_read("data/donuts.shp")
 
 
 selected_donuts <- donuts %>%
-  slice_sample(.,n=3000)
+  slice_sample(.,n=1000)
 
 
 mapview(smaller_urban)+

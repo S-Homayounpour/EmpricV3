@@ -42,9 +42,18 @@ lines_test <- sampled_lines_mv1 %>%
   st_transform(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs"))
 
 
-# 
+
 # mapview(centroids_inside_the_polygs)+
 #   mapview(lines_test,color = "red")
+
+
+# 
+# hulls <- st_read("data/hull_blocks_max.shp")
+# geom_circumscribed <- st_read("data/geom ciricum/geom_circumscribed_sampling1.shp")
+# 
+#  mapview(centroids_inside_the_polygs,color = "yellow",zcol = NULL,legend = FALSE)+
+#   mapview(hulls,color = "blue",alpha.regions = 0.1, col.regions = "blue" ,legend = FALSE)+
+#    mapview(geom_circumscribed, color = "red",alpha.regions = 0.01,legend = FALSE)
 
 
 
