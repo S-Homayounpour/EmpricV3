@@ -66,9 +66,9 @@ lines_test <- sampled_lines_mv1 %>%
 ## 
 
 
-# lines_test <- lines_test %>% 
-#   st_set_crs(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs")) %>% 
-#   mutate(lineid = row_number())
+lines_test <- lines_test %>%
+  st_set_crs(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs")) %>%
+  mutate(lineid = row_number())
 
 ##Finding burnt segment in fire history
 
@@ -131,13 +131,33 @@ spacing <- min(cellres)
 # smpdlines_infoadded
 #mpts <- st_segmentize(lines_test, dfMaxLength = 1 / spacing)
 
-mpts_linesamp <-  sf::st_line_sample(lines_test, n = 30)
 
+
+lines_test <- filter(lines_test,!is.na(st_dimension(lines_test$geometry))) 
+
+# 
+# lines_test <- lines_test %>%
+#   mutate(geometry =sf::st_make_valid(geometry)) %>%
+#   rowwise() %>%
+#    mutate(geometry = st_cast(geometry,"LINESTRING")) %>%
+#   unnest()
+
+
+
+
+# 
+# lines_test$geometry <- st_cast(lines_test$geometry,"LINESTRING")
+
+# st_transform(lines_test,crs = 3308)
+
+mpts_linesamp <-  sf::st_line_sample(st_transform(lines_test,crs = 3308), n = 30)
+
+lines_test <-  sf::st_transform(lines_test,crs = 4283)
 
 # Create a data frame of sample points
 dat <- lapply(1:nrow(lines_test),
               function(i) {
-                xy <- st_coordinates(mpts[[i]])
+                xy <- st_coordinates(mpts_linesamp[[i]])
                 
                 data.frame(FireId = lines_test$FireId[i],
                            lineid = lines_test$lineid[i],
@@ -149,11 +169,17 @@ dat <- lapply(1:nrow(lines_test),
 dat <- do.call(rbind, dat)
 
 
+raster::crs(dem_dt) <- "+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs"
+
+dat_test <- as.numeric(as.matrix(dat[, c("x", "y")]))
+
 # Extract values from rasters
 vals <- lapply(dem_dt, function(r) {
-  raster::extract(r, as.matrix(dat[, c("x", "y")]))
+  print(r)
+  raster::extract(r, dat_test)
 })
 names(vals) <- names(dem_dt)
 
 # Return result
 data.frame(dat, vals)
+
