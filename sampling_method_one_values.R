@@ -6,6 +6,7 @@ library(ggmap)
 library(tmap)
 library(leaflet)
 library(mapview)
+library(terra)
 
 
 fire_hist_1 <- st_read("data/ignoredata/NSW_FireHistory20200413_HRsgdb/NSW_FireHistory20200413_HRsgdb/NSW_FireHistory20200413_HRs.gdb")
@@ -152,7 +153,7 @@ lines_test <- filter(lines_test,!is.na(st_dimension(lines_test$geometry)))
 
 mpts_linesamp <-  sf::st_line_sample(st_transform(lines_test,crs = 3308), n = 30)
 
-lines_test <-  sf::st_transform(lines_test,crs = 4283)
+# mpts_linesamp <-  sf::st_transform(mpts_linesamp,crs = 4283)
 
 # Create a data frame of sample points
 dat <- lapply(1:nrow(lines_test),
@@ -169,14 +170,17 @@ dat <- lapply(1:nrow(lines_test),
 dat <- do.call(rbind, dat)
 
 
-raster::crs(dem_dt) <- "+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs"
+lambproj <-"+proj=lcc +lat_1=-30.75 +lat_2=-35.75 +lat_0=-33.25 +lon_0=147 +x_0=9300000 +y_0=4500000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
 
-dat_test <- as.numeric(as.matrix(dat[, c("x", "y")]))
+dem_projedted<- raster::projectRaster(dem_dt,crs= lambproj)
+
+
+# plot(dem_projedted)
+# plot(dat[,c("x","y")],add = TRUE)
 
 # Extract values from rasters
-vals <- lapply(dem_dt, function(r) {
-  print(r)
-  raster::extract(r, dat_test)
+vals <- lapply(1:nrow(dat), function(i) {
+  raster::extract(dem_projedted, as.matrix(dat[i,c("x","y")]))
 })
 names(vals) <- names(dem_dt)
 
