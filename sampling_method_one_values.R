@@ -180,10 +180,15 @@ dem_projedted<- raster::projectRaster(dem_dt,crs= lambproj)
 
 # Extract values from rasters
 vals <- lapply(1:nrow(dat), function(i) {
-  raster::extract(dem_projedted, as.matrix(dat[i,c("x","y")]))
+  cellvalue <- raster::extract(dem_projedted, as.matrix(dat[i,c("x","y")]))
+  index <- dat[i,c("sampleid","lineid","FireId")]
+  names(cellvalue) <- names(dem_projedted)
+  c(cellvalue,index)
 })
-names(vals) <- names(dem_dt)
+
+vals <- do.call(rbind,vals)
+#names(vals) <- names(dem_dt)
 
 # Return result
-data.frame(dat, vals)
+vals <- as.data.frame(vals)
 

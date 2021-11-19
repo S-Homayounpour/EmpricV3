@@ -45,6 +45,9 @@ centroids_inside_the_polygs<- fire_hist_1 %>%
   dplyr::select(-c(cntr,s)) 
 
 
+
+
+centroids_inside_the_polygs <- st_transform(centroids_inside_the_polygs,crs = 3308 )
 # #
 # # Unsuccessful
 # ## a function that find the convex hull around the polygon and give back its radius
@@ -119,9 +122,13 @@ centroids_inside_the_polygs<- fire_hist_1 %>%
 # # Unsuccessful
 ##
 
+
+## st_transform(lines_test,crs = 3308)
+
 ## drawing a chull convex around fire area for fires after 2017
 hulls <- centroids_inside_the_polygs %>% 
   st_transform(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs")) %>% 
+  st_transform(.,crs = 3308) %>% 
   dplyr::select(ID,Shape) %>% 
   mutate(Shape = st_make_valid(Shape)) %>%
   st_convex_hull()
@@ -132,6 +139,7 @@ geom_centroids <- centroids_inside_the_polygs %>%
   dplyr::select(ID,Shape) %>% 
   st_transform(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs")) %>% 
   mutate(Shape = st_make_valid(Shape)) %>% 
+  st_transform(.,crs = 3308) %>% 
   st_centroid(.)
 
 
@@ -140,6 +148,7 @@ hull_points <- hulls %>%
   dplyr::select(ID,Shape) %>% 
   st_transform(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs")) %>% 
   mutate(centroid_geometry = geom_centroids$Shape) %>%
+  st_transform(.,crs = 3308) %>% 
   st_cast("POINT")
 
 ## calculatin distance from centroids to all poins in hull 
@@ -149,6 +158,7 @@ hull_points$dist_to_centroid <- as.numeric(hull_points %>%
 ## finding the maximum distance from centroids to hull pints
 hull_max<- hull_points %>% 
   st_transform(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs")) %>% 
+  st_transform(.,crs = 3308) %>% 
   group_by(ID) %>%
   summarize(max_dist = max(dist_to_centroid)) %>% 
   ungroup()
@@ -156,6 +166,7 @@ hull_max<- hull_points %>%
 ## drawing an incirumscribed cicle around centroids
 geom_circumscribed <- geom_centroids %>%
   st_transform(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs")) %>% 
+  st_transform(.,crs = 3308) %>% 
   st_buffer(hull_max$max_dist)
 
 
@@ -183,6 +194,7 @@ geom_circumscribed <- geom_centroids %>%
 ## like an index
 sampling_1_index<- hull_points %>% 
   st_transform(st_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs")) %>% 
+  st_transform(.,crs = 3308) %>% 
   group_by(ID) %>%
   summarize(max_dist = max(dist_to_centroid)) %>% 
   ungroup() %>% 
@@ -195,6 +207,7 @@ sampling_1_index<- sampling_1_index %>%
   left_join(geom_centroids, by = "ID") %>%
   st_as_sf() %>% 
   st_set_crs("+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs") %>% 
+  st_transform(.,crs = 3308) %>% 
   mutate(long = unlist(map(.$Shape,1)),
          lat = unlist(map(.$Shape,2)))
   
@@ -212,7 +225,7 @@ random_ang_len <-  function(max_dist = 100 , nlines = 180){
   
   zaviehs <- seq(0,359,1)
   step_unit = (max_dist * 1.5)/nlines
-  faseles <-  seq(0,max_dist * 1.5,step_unit)
+  faseles <-  seq(1,max_dist * 1.5,step_unit)
   angs_dists_set <- data.frame( angles = sample(zaviehs,nlines),distances = sample(faseles,nlines))
   as.data.frame(angs_dists_set)
 }
